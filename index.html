@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure File Transfer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #0d6efd;
+            --dark-blue: #0a58ca;
+            --black: #1a1a1a;
+            --dark-gray: #2d2d2d;
+            --light-gray: #3d3d3d;
+        }
+
+        body {
+            background-color: var(--black);
+            color: #fff;
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .navbar {
+            background: var(--dark-gray) !important;
+            border-bottom: 2px solid var(--primary-blue);
+        }
+
+        .navbar-brand {
+            color: #fff !important;
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+
+        .card {
+            background: var(--dark-gray);
+            border: 1px solid var(--primary-blue);
+            box-shadow: 0 4px 15px rgba(13, 110, 253, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(13, 110, 253, 0.3);
+        }
+
+        .upload-area {
+            background: var(--dark-gray);
+            border: 2px dashed var(--primary-blue);
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 30px;
+        }
+
+        .upload-area:hover {
+            border-color: var(--dark-blue);
+            background: var(--light-gray);
+            transform: scale(1.02);
+        }
+
+        .upload-area i {
+            color: var(--primary-blue);
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .btn-primary {
+            background: var(--primary-blue);
+            border: none;
+            padding: 10px 25px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            background: var(--dark-blue);
+            transform: translateY(-2px);
+        }
+
+        .btn-outline-light {
+            border: 2px solid #fff;
+            color: #fff;
+        }
+
+        .btn-outline-light:hover {
+            background: #fff;
+            color: var(--black);
+        }
+
+        .table {
+            background: var(--dark-gray);
+            color: #fff;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .table thead {
+            background: var(--primary-blue);
+            color: #fff;
+        }
+
+        .table td, .table th {
+            border-color: var(--light-gray);
+            padding: 15px;
+        }
+
+        .file-card {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .section-title {
+            color: #fff;
+            margin-bottom: 25px;
+            font-weight: bold;
+            border-left: 4px solid var(--primary-blue);
+            padding-left: 15px;
+        }
+
+        .loading {
+            position: relative;
+        }
+
+        .loading::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            top: 50%;
+            left: 50%;
+            margin: -10px 0 0 -10px;
+            border: 3px solid var(--dark-gray);
+            border-top: 3px solid var(--primary-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .file-info {
+            color: #ccc;
+            font-size: 0.9rem;
+        }
+
+        .download-btn {
+            background: var(--primary-blue);
+            color: #fff;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .download-btn:hover {
+            background: var(--dark-blue);
+            transform: translateY(-2px);
+        }
+
+        .download-btn i {
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-shield-alt me-2"></i>Secure File Transfer
+            </a>
+            <div class="d-flex">
+                <button class="btn btn-outline-light me-2" onclick="window.location.href='/login'">Login</button>
+                <button class="btn btn-primary" onclick="window.location.href='/register'">Register</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div id="mainContent" style="display: none;">
+            <!-- File Upload Area -->
+            <div class="upload-area" id="dropZone">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <h3 class="mb-3">Drag & Drop Files Here</h3>
+                <p class="text-muted mb-4">or</p>
+                <input type="file" id="fileInput" style="display: none;">
+                <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                    <i class="fas fa-folder-open me-2"></i>Choose Files
+                </button>
+            </div>
+
+            <!-- Files List -->
+            <h3 class="section-title">Your Files</h3>
+            <div class="row" id="filesList">
+                <!-- Files will be dynamically added here -->
+            </div>
+
+            <!-- Access Logs -->
+            <h3 class="section-title mt-5">Recent Activity</h3>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>File</th>
+                            <th>Action</th>
+                            <th>Timestamp</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logsList">
+                        <!-- Logs will be dynamically added here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let token = localStorage.getItem('token');
+        const API_URL = 'http://localhost:5000';
+
+        function updateUI() {
+            if (token) {
+                document.getElementById('mainContent').style.display = 'block';
+                loadFiles();
+                loadLogs();
+            } else {
+                window.location.href = '/login';
+            }
+        }
+
+        async function loadFiles() {
+            try {
+                const response = await fetch(`${API_URL}/files`, {
+                    headers: { 'Authorization': token }
+                });
+                const files = await response.json();
+                const filesList = document.getElementById('filesList');
+                filesList.innerHTML = files.map(file => `
+                    <div class="col-md-4 mb-4">
+                        <div class="card file-card">
+                            <div class="card-body">
+                                <h5 class="card-title text-white">${file.filename}</h5>
+                                <p class="file-info">
+                                    <i class="fas fa-clock me-2"></i>
+                                    ${new Date(file.upload_date).toLocaleString()}
+                                </p>
+                                <button class="download-btn" onclick="downloadFile(${file.id})">
+                                    <i class="fas fa-download"></i> Download
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading files:', error);
+            }
+        }
+
+        async function loadLogs() {
+            try {
+                const response = await fetch(`${API_URL}/logs`, {
+                    headers: { 'Authorization': token }
+                });
+                const logs = await response.json();
+                const logsList = document.getElementById('logsList');
+                logsList.innerHTML = logs.map(log => `
+                    <tr>
+                        <td>${log.file_id}</td>
+                        <td>
+                            <span class="badge ${log.action === 'upload' ? 'bg-primary' : 'bg-success'}">
+                                ${log.action}
+                            </span>
+                        </td>
+                        <td>${new Date(log.timestamp).toLocaleString()}</td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading logs:', error);
+            }
+        }
+
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = 'var(--dark-blue)';
+            dropZone.style.background = 'var(--light-gray)';
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.style.borderColor = 'var(--primary-blue)';
+            dropZone.style.background = 'var(--dark-gray)';
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = 'var(--primary-blue)';
+            dropZone.style.background = 'var(--dark-gray)';
+            const files = e.dataTransfer.files;
+            handleFiles(files);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        async function handleFiles(files) {
+            for (const file of files) {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                try {
+                    // Show loading state
+                    const dropZone = document.getElementById('dropZone');
+                    dropZone.classList.add('loading');
+                    dropZone.innerHTML = '<i class="fas fa-spinner fa-spin fa-3x"></i><p>Uploading...</p>';
+
+                    const response = await fetch(`${API_URL}/upload`, {
+                        method: 'POST',
+                        headers: { 'Authorization': token },
+                        body: formData
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        // Show success message
+                        dropZone.innerHTML = '<i class="fas fa-check-circle fa-3x text-success"></i><p>Upload successful!</p>';
+                        setTimeout(() => {
+                            // Reset drop zone
+                            dropZone.innerHTML = `
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <h3 class="mb-3">Drag & Drop Files Here</h3>
+                                <p class="text-muted mb-4">or</p>
+                                <input type="file" id="fileInput" style="display: none;">
+                                <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                                    <i class="fas fa-folder-open me-2"></i>Choose Files
+                                </button>
+                            `;
+                            dropZone.classList.remove('loading');
+                        }, 2000);
+                        
+                        loadFiles();
+                        loadLogs();
+                    } else {
+                        throw new Error(data.message || 'Error uploading file');
+                    }
+                } catch (error) {
+                    console.error('Error uploading file:', error);
+                    // Show error message
+                    dropZone.innerHTML = `
+                        <i class="fas fa-exclamation-circle fa-3x text-danger"></i>
+                        <p class="text-danger">${error.message}</p>
+                        <button class="btn btn-primary mt-3" onclick="resetDropZone()">
+                            Try Again
+                        </button>
+                    `;
+                    dropZone.classList.remove('loading');
+                }
+            }
+        }
+
+        function resetDropZone() {
+            const dropZone = document.getElementById('dropZone');
+            dropZone.innerHTML = `
+                <i class="fas fa-cloud-upload-alt"></i>
+                <h3 class="mb-3">Drag & Drop Files Here</h3>
+                <p class="text-muted mb-4">or</p>
+                <input type="file" id="fileInput" style="display: none;">
+                <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                    <i class="fas fa-folder-open me-2"></i>Choose Files
+                </button>
+            `;
+            dropZone.classList.remove('loading');
+        }
+
+        async function downloadFile(fileId) {
+            try {
+                const response = await fetch(`${API_URL}/download/${fileId}`, {
+                    headers: { 'Authorization': token }
+                });
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = response.headers.get('Content-Disposition').split('filename=')[1];
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    a.remove();
+                    loadLogs();
+                } else {
+                    alert('Error downloading file');
+                }
+            } catch (error) {
+                console.error('Error downloading file:', error);
+                alert('Error downloading file');
+            }
+        }
+
+        updateUI();
+    </script>
+</body>
+</html> 
